@@ -1,0 +1,212 @@
+create database Films;
+use Films;
+SELECT 
+    *
+FROM
+    Films.movies;
+SELECT 
+    COUNT(*)
+FROM
+    movies;
+SELECT 
+    MAX(score) AS maximum_no
+FROM
+    movies
+ORDER BY maximum_no DESC;
+SELECT 
+    *
+FROM
+    movies
+WHERE
+    score = (SELECT 
+            MAX(score) AS maximum_no
+        FROM
+            movies
+        ORDER BY maximum_no DESC);
+
+ -- find the movies with highest profit(vs orderby ) 
+ SELECT 
+    *
+FROM
+    movies
+WHERE
+    (gross - budget) = (SELECT 
+            MAX(gross - budget)
+        FROM
+            movies);
+ 
+ -- find how many movies have a rating > the avg of all the movie rating (Find the count of above average movies)
+SELECT 
+    COUNT(*)
+FROM
+    movies
+WHERE
+    score > (SELECT 
+            AVG(score)
+        FROM
+            movies);
+ 
+ -- find the heighest rated movie of 2000
+ SELECT 
+    *
+FROM
+    movies
+WHERE
+    year = 2000
+        AND score = (SELECT 
+            MAX(score)
+        FROM
+            movies
+        WHERE
+            year = 2000);
+ 
+ -- find the highest rated movie among all movies whose number of votes are > the dataset avg votes
+SELECT 
+    *
+FROM
+    movies
+WHERE
+    score = (SELECT 
+            MAX(score) AS aa
+        FROM
+            movies
+        WHERE
+            votes > (SELECT 
+                    AVG(votes)
+                FROM
+                    movies));
+
+ create database Zomato;
+ use Zomato;
+ 
+ -- Find users who never ordered
+ SELECT 
+    *
+FROM
+    users
+WHERE
+    user_id NOT IN (SELECT DISTINCT
+            (user_id)
+        FROM
+            orders);
+ 
+ -- find  all the movies made by top 3 directors(in terms of total gross income)
+ SELECT 
+    *
+FROM
+    movies
+WHERE
+    director IN (SELECT 
+            director
+        FROM
+            movies
+        GROUP BY director
+        ORDER BY SUM(gross) DESC
+        LIMIT 3);
+
+with top_directors as (select director from movies group by director order by sum(gross) desc limit 3 )
+select * from movies where director in (select * from top_directors);
+ 
+ -- Find all movies of all those actors whose filmgraphy's avg rating > 8.5(take 25000 votes as cutoff)
+ 
+SELECT 
+    *
+FROM
+    movies
+WHERE
+    star IN (SELECT 
+            star
+        FROM
+            movies
+        WHERE
+            votes > 25000
+        GROUP BY star
+        HAVING AVG(score) > 8.5);
+SELECT 
+    *
+FROM
+    zomato.movies;
+ 
+ -- Find the most profitable movie of each year
+SELECT 
+    *
+FROM
+    movies
+WHERE
+    (year , gross - budget) IN (SELECT 
+            year, MAX(gross - budget)
+        FROM
+            movies
+        GROUP BY year);
+  
+-- Find the highest rated movie of each genre votes cutoff of 25000
+SELECT 
+    *
+FROM
+    movies
+WHERE
+    (genre , score) IN (SELECT 
+            genre, MAX(score)
+        FROM
+            movies
+        GROUP BY genre)
+        AND votes > 25000;
+
+-- Find the highest grossing movies of Top 5 actor/director combo in terms of total gross income
+with top_duos as (
+select star , (director) , max(gross) from movies group by director,star order by  sum(gross) desc limit 5 )
+select  * from movies where (star,director,gross) in (select * from top_duos);
+
+-- correlated subquery--
+-- 1 Find all movies that have a rating higher than the average rating of movies in the same genre.
+
+SELECT 
+    *
+FROM
+    movies m1
+WHERE
+    score > (SELECT 
+            AVG(score)
+        FROM
+            movies m2
+        WHERE
+            m2.genre = m1.genre);
+
+-- update query using subquery
+use Zomato;
+CREATE TABLE loyal_user (
+    user_id INT UNIQUE,
+    name VARCHAR(255),
+    money INT
+);
+SELECT 
+    *
+FROM
+    loyal_user;
+
+INSERT INTO loyal_user (user_id, name)
+SELECT t1.user_id, t2.name
+FROM orders t1
+JOIN users t2 ON t1.user_id = t2.user_id
+GROUP BY t1.user_id, t2.name
+HAVING COUNT(*) > 3;
+
+ALTER TABLE loyal_user MODIFY name VARCHAR(255);
+
+-- delete subquery
+-- delete all the customer record who have never ordered
+  
+  
+  DELETE FROM users 
+WHERE
+    user_id IN (SELECT 
+        user_id
+    FROM
+        users
+    
+    WHERE
+        user_id NOT IN (SELECT DISTINCT
+            (user_id)
+        FROM
+            orders))
+
